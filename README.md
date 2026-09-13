@@ -7,7 +7,7 @@ Microcontroller: STM32-F446RE\
 
 LCD Screen:
 
-TFT LCD Display by ADA Fruit, 128x128\
+TFT LCD Display by ADA Fruit, 128x128
 
 
 So far in this project, upload of updated ST77_Driver.c is needed
