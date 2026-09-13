@@ -2,4 +2,9 @@
 
 So far in this project, upload of updated ST77_Driver.c is needed
 Current Updates: 
+
+
 9/9/2026 - Working on  drawing function for driver, managed to get pixels on screen with proper initialization, next step is create simple animations. 
+
+
+9/13/26 - Managed to get a full 128 by 128 pixel image on the screen, the format is, Big-endian for each 16-bit color, in BGR format. I am now able to upload many different images, I have plans of wanting to make this faster perhaps via DMA? We will see, soon I need to start the RTOS integration once sprite animation starts coming into play. 
