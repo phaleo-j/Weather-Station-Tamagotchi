@@ -25,6 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "framedata_LUT.h"
 
 /* USER CODE END Includes */
 
@@ -100,17 +101,29 @@ static void MX_TIM7_Init(void);
 
 
 
+
+
+void SPI_TCS_LO(){
+	 HAL_GPIO_WritePin(GPIOA, TCS_Pin, GPIO_PIN_RESET);   //TCS 0
+}
+
+void SPI_TCS_HI(){
+	HAL_GPIO_WritePin(GPIOA, TCS_Pin, GPIO_PIN_SET);
+}
+
+
 void SPI_sendarraydata(uint8_t tx_buffer[], uint8_t number_of_bytes){  //send multiple bytes
 	  HAL_SPI_Transmit(&hspi2, tx_buffer, number_of_bytes, 100);       // send reset command
   }
 
 
 
- void ST77_Draw(ADDRESS_SET *address,uint16_t x_start, uint16_t x_end, uint16_t y_start, uint16_t y_end, uint16_t color){
+ void ST77_DrawImage(tImage Image,ADDRESS_SET *address,uint16_t x_start, uint16_t x_end, uint16_t y_start, uint16_t y_end){
+
 
       uint8_t spi_data = ST77_CASET;
-      uint8_t color_hi = (color & 0xFF00) >> 8;
-      uint8_t color_lo = (color & 0x00FF);
+      uint8_t color_hi;
+      uint8_t color_lo;
 
 	  address->x_start_hibyte = (x_start & 0xFF00) >> 8;
 	  address->x_start_lobyte = (x_start & 0x00FF);
@@ -131,13 +144,15 @@ void SPI_sendarraydata(uint8_t tx_buffer[], uint8_t number_of_bytes){  //send mu
 			  address->y_end_hibyte,address->y_end_lobyte};
 
 
-	      HAL_GPIO_WritePin(GPIOA, TCS_Pin, GPIO_PIN_RESET);   //TCS 0
+	     SPI_TCS_LO();
+	   //HAL_GPIO_WritePin(GPIOA, TCS_Pin, GPIO_PIN_RESET);   //TCS 0
 	  	  HAL_SPI_Transmit(&hspi2, &spi_data,1, 100);
 	  	  HAL_GPIO_WritePin(GPIOA, D_C_Pin, GPIO_PIN_SET);
 
 	  	  SPI_sendarraydata(caset_parameters, 4);
 
-	  	  HAL_GPIO_WritePin(GPIOA, TCS_Pin, GPIO_PIN_SET);
+	  	  SPI_TCS_HI();
+	  //  HAL_GPIO_WritePin(GPIOA, TCS_Pin, GPIO_PIN_SET);
 	  	  HAL_GPIO_WritePin(GPIOA, D_C_Pin, GPIO_PIN_RESET);
 
 
@@ -151,8 +166,11 @@ void SPI_sendarraydata(uint8_t tx_buffer[], uint8_t number_of_bytes){  //send mu
 	  	  HAL_GPIO_WritePin(GPIOA, TCS_Pin, GPIO_PIN_SET);
 	  	  HAL_GPIO_WritePin(GPIOA, D_C_Pin, GPIO_PIN_RESET);
 
-		  uint16_t columns_to_fill = (x_end - x_start) + 1;
-		  uint16_t rows_to_fill = (y_end - y_start) + 1;
+// maybe split up right here?
+
+	  	  uint16_t columns_to_fill = (x_end - x_start)+1;
+		  uint16_t rows_to_fill = (y_end - y_start)+1;
+
 
 		  if (columns_to_fill == 0){
 			  columns_to_fill++;
@@ -163,15 +181,25 @@ void SPI_sendarraydata(uint8_t tx_buffer[], uint8_t number_of_bytes){  //send mu
 		 		  }
 
 
-
 		  spi_data = ST77_RAMWR;
 		 		                   HAL_GPIO_WritePin(GPIOA, TCS_Pin, GPIO_PIN_RESET);   //TCS 0
 		 		                   HAL_SPI_Transmit(&hspi2, &spi_data,1, 100);
 		 		                   HAL_GPIO_WritePin(GPIOA, D_C_Pin, GPIO_PIN_SET);
 
-		  for (int i = 0; i < columns_to_fill*rows_to_fill; i++) {    //129 columns by 130 rows, +1,+2 offset, fill entire screen black
-			  HAL_SPI_Transmit(&hspi2,&color_lo ,1, 100);
+
+         //were doing 4 bytes at a time now
+		  for (int i = 0; i < (columns_to_fill * rows_to_fill)/2; i++) {    //129 columns by 130 rows, +1,+2 offset, fill entire screen black
+                //do first pixel, so 16 bits
+
+			  color_hi = (Image.data[i] >> 8) & 0x000000FF;
+			  color_lo = (Image.data[i]) & 0x000000FF;
 			  HAL_SPI_Transmit(&hspi2,&color_hi ,1, 100);
+			  HAL_SPI_Transmit(&hspi2,&color_lo ,1, 100);
+
+			  color_hi = (Image.data[i] >> 24) & 0x000000FF;    //extract highest byte
+			  color_lo = (Image.data[i] >> 16) & 0x000000FF;   //extract 2nd highest byte
+			  HAL_SPI_Transmit(&hspi2,&color_hi ,1, 100);
+			  HAL_SPI_Transmit(&hspi2,&color_lo ,1, 100);
 
 	  }
 
@@ -179,8 +207,6 @@ void SPI_sendarraydata(uint8_t tx_buffer[], uint8_t number_of_bytes){  //send mu
 		  HAL_GPIO_WritePin(GPIOA, TCS_Pin, GPIO_PIN_SET); //TCS 1
 
  }
-
-
 
 
  void SPI_sendbyte_noparam(uint8_t tx_buffer){  // send a single byte, command with no parameters
@@ -312,10 +338,8 @@ int main(void)
    	    	        HAL_Delay(120);  //necessary delay
 
                    ADDRESS_SET address_test;
-                   ST77_Draw(&address_test,2,129,1,128,0x0000);
-                   ST77_Draw(&address_test,50,70,50,70,0xE0FF);
-                   ST77_Draw(&address_test,50,70,80,100,0xE0FF);
-                   ST77_Draw(&address_test,50,70,20,40,0xE0FF);
+
+                   ST77_DrawImage(Image,&address_test,2,129,1,128);  //blank black screen
 
 
 
@@ -326,6 +350,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
 
 
     /* USER CODE END WHILE */
