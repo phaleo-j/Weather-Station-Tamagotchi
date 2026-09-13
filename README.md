@@ -3,15 +3,13 @@
 Microcontroller: STM32-F446RE\
 -512KB Flash\
 -128KB SRAM\
--180 MHz Max Clock Speed\
+-180 MHz Max Clock Speed
 
-LCD Screen: 
+LCD Screen:\ 
 TFT LCD Display by ADA Fruit, 128x128
 
-
-
-So far in this project, upload of updated ST77_Driver.c is needed
-Current Updates: 
+So far in this project, upload of updated ST77_Driver.c is needed\
+Current Updates:
 
 
 9/9/2026 - Working on  drawing function for driver, managed to get pixels on screen with proper initialization, next step is create simple animations. 
