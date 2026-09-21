@@ -20,3 +20,6 @@ Current Updates:
 
 
 9/13/26 - Managed to get a full 128 by 128 pixel image on the screen, the format is, Big-endian for each 16-bit color, in BGR format. I am now able to upload many different images, I have plans of wanting to make this faster perhaps via DMA? We will see, soon I need to start the RTOS integration once sprite animation starts coming into play. "FRAMEDATA_LUT.c" contains the memory of the images in array, an image that covers the entire screen takes 32KB total, my STM32 microcontroller running the LCD screen has 512KB of flash memory, so I can utilize up to most 16 full images. As for the application of a Tamagotchi, I will not need nearly as much of this memory. 
+
+
+9/20/26 - Update : integrated function to extract a single frame from a sprite sheet, need to add the proper files. Encountered a problem with the frame having corrupted pixels. Initially thought it was the array but it looked fine, until I started looking into my extract_frame() function. Because a single frame was about 4KB, it blew way past the stack size since I was initializing the frame buffer inside the function itself. My total stack was only 1KB. Moved the array outside of the function as a static to put it into SRAM. Problem Fixed
