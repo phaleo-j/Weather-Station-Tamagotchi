@@ -27,6 +27,7 @@
 /* USER CODE BEGIN Includes */
 #include "framedata_LUT.h"
 
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -144,42 +145,29 @@ void SPI_sendarraydata(uint8_t tx_buffer[], uint8_t number_of_bytes){  //send mu
 			  address->y_end_hibyte,address->y_end_lobyte};
 
 
-	     SPI_TCS_LO();
-	   //HAL_GPIO_WritePin(GPIOA, TCS_Pin, GPIO_PIN_RESET);   //TCS 0
+	      SPI_TCS_LO();
 	  	  HAL_SPI_Transmit(&hspi2, &spi_data,1, 100);
 	  	  HAL_GPIO_WritePin(GPIOA, D_C_Pin, GPIO_PIN_SET);
 
 	  	  SPI_sendarraydata(caset_parameters, 4);
 
 	  	  SPI_TCS_HI();
-	  //  HAL_GPIO_WritePin(GPIOA, TCS_Pin, GPIO_PIN_SET);
 	  	  HAL_GPIO_WritePin(GPIOA, D_C_Pin, GPIO_PIN_RESET);
 
 
 	  	  spi_data = ST77_RASET;
-	  	  HAL_GPIO_WritePin(GPIOA, TCS_Pin, GPIO_PIN_RESET);   //TCS 0
+	  	  SPI_TCS_LO();
 	  	  HAL_SPI_Transmit(&hspi2, &spi_data,1, 100);
 	  	  HAL_GPIO_WritePin(GPIOA, D_C_Pin, GPIO_PIN_SET);
 
 	  	  SPI_sendarraydata(raset_parameters, 4);
-
-	  	  HAL_GPIO_WritePin(GPIOA, TCS_Pin, GPIO_PIN_SET);
+	  	  SPI_TCS_HI();
 	  	  HAL_GPIO_WritePin(GPIOA, D_C_Pin, GPIO_PIN_RESET);
 
 // maybe split up right here?
 
 	  	  uint16_t columns_to_fill = (x_end - x_start)+1;
 		  uint16_t rows_to_fill = (y_end - y_start)+1;
-
-
-		  if (columns_to_fill == 0){
-			  columns_to_fill++;
-		  }
-
-		  if (rows_to_fill == 0){
-		 			  rows_to_fill++;
-		 		  }
-
 
 		  spi_data = ST77_RAMWR;
 		 		                   HAL_GPIO_WritePin(GPIOA, TCS_Pin, GPIO_PIN_RESET);   //TCS 0
@@ -189,11 +177,11 @@ void SPI_sendarraydata(uint8_t tx_buffer[], uint8_t number_of_bytes){  //send mu
 
          //were doing 4 bytes at a time now
 		  for (int i = 0; i < (columns_to_fill * rows_to_fill)/2; i++) {    //129 columns by 130 rows, +1,+2 offset, fill entire screen black
-                //do first pixel, so 16 bits
+                //MAKE A BUFFER FOR THIS FOR SPI
 
 			  color_hi = (Image.data[i] >> 8) & 0x000000FF;
 			  color_lo = (Image.data[i]) & 0x000000FF;
-			  HAL_SPI_Transmit(&hspi2,&color_hi ,1, 100);
+			  HAL_SPI_Transmit(&hspi2,&color_hi ,1, 100);    // limit the amount of SPI calls you're doing, stream it into an array like you did CASET,RASET
 			  HAL_SPI_Transmit(&hspi2,&color_lo ,1, 100);
 
 			  color_hi = (Image.data[i] >> 24) & 0x000000FF;    //extract highest byte
@@ -214,6 +202,88 @@ void SPI_sendarraydata(uint8_t tx_buffer[], uint8_t number_of_bytes){  //send mu
 	  HAL_GPIO_WritePin(GPIOA, TCS_Pin, GPIO_PIN_RESET);   //TCS 0
 	  HAL_SPI_Transmit(&hspi2, &tx_buffer,1, 100);       // send reset command
 	  HAL_GPIO_WritePin(GPIOA, TCS_Pin, GPIO_PIN_SET);   //TCS 1
+  }
+
+
+
+ void ST77_DrawFrame(tFrame Frame,ADDRESS_SET *address,uint16_t x_start, uint16_t x_end, uint16_t y_start, uint16_t y_end){
+
+
+       uint8_t spi_data = ST77_CASET;
+       uint8_t color_hi;
+       uint8_t color_lo;
+
+ 	  address->x_start_hibyte = (x_start & 0xFF00) >> 8;
+ 	  address->x_start_lobyte = (x_start & 0x00FF);
+
+ 	  address->x_end_hibyte = (x_end & 0xFF00) >> 8;
+ 	  address->x_end_lobyte = (x_end & 0x00FF);
+
+ 	  uint8_t caset_parameters[FIXED_SIZE_COLUMN_SET] = {address->x_start_hibyte, address->x_start_lobyte,
+ 			  address->x_end_hibyte,address->x_end_lobyte};
+
+ 	  address->y_start_hibyte = (y_start & 0xFF00) >> 8;
+ 	  address->y_start_lobyte = (y_start & 0x00FF);
+
+ 	  address->y_end_hibyte = (y_end & 0xFF00) >> 8;
+ 	  address->y_end_lobyte = (y_end & 0x00FF);
+
+ 	  uint8_t raset_parameters[FIXED_SIZE_ROW_SET] = {address->y_start_hibyte, address->y_start_lobyte,
+ 			  address->y_end_hibyte,address->y_end_lobyte};
+
+
+ 	      SPI_TCS_LO();
+ 	  	  HAL_SPI_Transmit(&hspi2, &spi_data,1, 100);
+ 	  	  HAL_GPIO_WritePin(GPIOA, D_C_Pin, GPIO_PIN_SET);
+
+ 	  	  SPI_sendarraydata(caset_parameters, 4);
+
+ 	  	  SPI_TCS_HI();
+ 	  	  HAL_GPIO_WritePin(GPIOA, D_C_Pin, GPIO_PIN_RESET);
+
+
+ 	  	  spi_data = ST77_RASET;
+ 	  	  SPI_TCS_LO();
+ 	  	  HAL_SPI_Transmit(&hspi2, &spi_data,1, 100);
+ 	  	  HAL_GPIO_WritePin(GPIOA, D_C_Pin, GPIO_PIN_SET);
+
+ 	  	  SPI_sendarraydata(raset_parameters, 4);
+ 	  	  SPI_TCS_HI();
+ 	  	  HAL_GPIO_WritePin(GPIOA, D_C_Pin, GPIO_PIN_RESET);
+
+ // maybe split up right here?
+
+ 	//  	  uint16_t columns_to_fill = (x_end - x_start);
+ 	//	  uint16_t rows_to_fill = (y_end - y_start);
+
+ 		  spi_data = ST77_RAMWR;
+ 		 		                   HAL_GPIO_WritePin(GPIOA, TCS_Pin, GPIO_PIN_RESET);   //TCS 0
+ 		 		                   HAL_SPI_Transmit(&hspi2, &spi_data,1, 100);
+ 		 		                   HAL_GPIO_WritePin(GPIOA, D_C_Pin, GPIO_PIN_SET);
+
+
+          //were doing 4 bytes at a time now
+ 		  for (int i = 0; i < (Frame.frame_height * Frame.frame_width) / 2; i++) {    //129 columns by 130 rows, +1,+2 offset, fill entire screen black
+                 //MAKE A BUFFER FOR THIS FOR SPI
+
+ 			//  if(Frame.frame_data[i] != 0x00) {
+ 			 color_hi = (Frame.frame_data[i] >> 8) & 0x000000FF;
+ 			 color_lo = (Frame.frame_data[i]) & 0x000000FF;
+ 			 HAL_SPI_Transmit(&hspi2,&color_hi ,1, 100);    // limit the amount of SPI calls you're doing, stream it into an array like you did CASET,RASET
+ 			 HAL_SPI_Transmit(&hspi2,&color_lo ,1, 100);
+
+
+ 			  color_hi = (Frame.frame_data[i] >> 24) & 0x000000FF;    //extract highest byte
+ 			  color_lo = (Frame.frame_data[i] >> 16) & 0x000000FF;   //extract 2nd highest byte
+ 			  HAL_SPI_Transmit(&hspi2,&color_hi ,1, 100);
+ 			  HAL_SPI_Transmit(&hspi2,&color_lo ,1, 100);
+
+
+ 	  }
+
+ 		  HAL_GPIO_WritePin(GPIOA, D_C_Pin, GPIO_PIN_RESET);
+ 		  HAL_GPIO_WritePin(GPIOA, TCS_Pin, GPIO_PIN_SET); //TCS 1
+
   }
 
 
@@ -278,7 +348,7 @@ int main(void)
 
 
 
-                   //Init sequence or ST77 Driver Display
+                   //Init sequence for ST77 Driver Display
                    tx_buffer = ST77_SLPOUT;
    	               SPI_sendbyte_noparam(tx_buffer);
 
@@ -338,9 +408,10 @@ int main(void)
    	    	        HAL_Delay(120);  //necessary delay
 
                    ADDRESS_SET address_test;
+                   tFrame Frame;
 
-                   ST77_DrawImage(Image,&address_test,2,129,1,128);  //blank black screen
-
+                  Frame.frame_count = 5;
+             	  Frame.next_ptr_location = 0;  //manually reset after it reaches frame count.
 
 
 
@@ -350,6 +421,13 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
+	  extract_frame(Sprite, &Frame);
+
+	  ST77_DrawFrame(Frame, &address_test,50,97,50,97);
+
+
+	  HAL_Delay(175);
 
 
 
