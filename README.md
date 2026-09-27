@@ -23,3 +23,6 @@ Current Updates:
 
 
 9/20/26 - Update : integrated function to extract a single frame from a sprite sheet, need to add the proper files. Encountered a problem with the frame having corrupted pixels. Initially thought it was the array but it looked fine, until I started looking into my extract_frame() function. Because a single frame was about 4KB, it blew way past the stack size since I was initializing the frame buffer inside the function itself. My total stack was only 1KB. Moved the array outside of the function as a static to put it into SRAM. Problem Fixed
+
+
+9/25/26 - In progress....
